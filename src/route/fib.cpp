@@ -80,8 +80,7 @@ Fib::remove(const ndn::Name& name)
         unregisterPrefix(it->getName(), nhit->getConnectingFaceUri());
       }
     }
-    _LOG_DEBUG("Cancelling Scheduled event. Name: " << name);
-    cancelScheduledExpiringEvent((*it).getExpiringEventId());
+
     m_table.erase(it);
   }
 }
@@ -114,7 +113,7 @@ Fib::addNextHopsToFibEntryAndNfd(FibEntry& entry, NexthopList& hopsToAdd)
       // Add nexthop to NDN-FIB
       registerPrefix(name, it->getConnectingFaceUri(),
                      it->getRouteCostAsAdjustedInteger(),
-                     ndn::time::seconds(m_refreshTime + GRACE_PERIOD),
+                     ndn::time::milliseconds::max(),
                      ndn::nfd::ROUTE_FLAG_CAPTURE, 0);
     }
   }
@@ -198,14 +197,8 @@ Fib::update(const ndn::Name& name, NexthopList& allHops)
 
     addNextHopsToFibEntryAndNfd(entry, hopsToAdd);
 
-    // Set entry's expiration time point and sequence number
-    entry.setExpirationTimePoint(ndn::time::system_clock::now() +
-                                  ndn::time::seconds(m_refreshTime));
     entry.setSeqNo(1);
 
-    // Schedule entry to be refreshed
-    entry.setExpiringEventId(scheduleEntryExpiration(name , entry.getSeqNo(),
-                                                     ndn::time::seconds(m_refreshTime)));
     m_table.push_back(entry);
   }
   else {
@@ -224,18 +217,8 @@ Fib::update(const ndn::Name& name, NexthopList& allHops)
 
     removeOldNextHopsFromFibEntryAndNfd(entry, hopsToAdd);
 
-    // Set entry's expiration time point
-    entry.setExpirationTimePoint(ndn::time::system_clock::now() +
-                                  ndn::time::seconds(m_refreshTime));
     // Increment sequence number
     entry.setSeqNo(entry.getSeqNo() + 1);
-
-    // Cancel previously scheduled event
-    m_scheduler.cancelEvent(entry.getExpiringEventId());
-
-    // Schedule entry to be refreshed
-    entry.setExpiringEventId(scheduleEntryExpiration(name , entry.getSeqNo(),
-                                                     ndn::time::seconds(m_refreshTime)));
   }
 }
 
@@ -246,7 +229,7 @@ Fib::clean()
   for (std::list<FibEntry>::iterator it = m_table.begin(); it != m_table.end();
        ++it) {
     _LOG_DEBUG("Cancelling Scheduled event. Name: " << it->getName());
-    cancelScheduledExpiringEvent((*it).getExpiringEventId());
+
     for (std::list<NextHop>::iterator nhit =
          (*it).getNexthopList().getNextHops().begin();
          nhit != (*it).getNexthopList().getNextHops().end(); nhit++) {

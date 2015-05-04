@@ -40,15 +40,13 @@ class FibEntry
 public:
   FibEntry()
     : m_name()
-    , m_expirationTimePoint()
     , m_seqNo(0)
     , m_nexthopList()
   {
   }
 
   FibEntry(const ndn::Name& name)
-    : m_expirationTimePoint()
-    , m_seqNo(0)
+    : m_seqNo(0)
     , m_nexthopList()
   {
     m_name = name;
@@ -64,30 +62,6 @@ public:
   getNexthopList()
   {
     return m_nexthopList;
-  }
-
-  const ndn::time::system_clock::TimePoint&
-  getExpirationTimePoint() const
-  {
-    return m_expirationTimePoint;
-  }
-
-  void
-  setExpirationTimePoint(const ndn::time::system_clock::TimePoint& ttr)
-  {
-    m_expirationTimePoint = ttr;
-  }
-
-  void
-  setExpiringEventId(ndn::EventId feid)
-  {
-    m_expiringEventId = feid;
-  }
-
-  ndn::EventId
-  getExpiringEventId() const
-  {
-    return m_expiringEventId;
   }
 
   void
@@ -107,8 +81,6 @@ public:
 
 private:
   ndn::Name m_name;
-  ndn::time::system_clock::TimePoint m_expirationTimePoint;
-  ndn::EventId m_expiringEventId;
   int32_t m_seqNo;
   NexthopList m_nexthopList;
 };

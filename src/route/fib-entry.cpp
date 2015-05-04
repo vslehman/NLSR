@@ -35,7 +35,6 @@ void
 FibEntry::writeLog()
 {
   _LOG_DEBUG("Name Prefix: " << m_name);
-  _LOG_DEBUG("Time to Refresh: " << m_expirationTimePoint);
   _LOG_DEBUG("Seq No: " << m_seqNo);
   m_nexthopList.writeLog();
 }
