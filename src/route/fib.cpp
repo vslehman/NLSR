@@ -99,6 +99,14 @@ Fib::addNextHopsToFibEntryAndNfd(FibEntry& entry, NexthopList& hopsToAdd)
 
   for (NexthopList::iterator it = hopsToAdd.begin(); it != hopsToAdd.end(); ++it)
   {
+    NexthopList::const_iterator foundIt =
+      std::find(entry.getNexthopList().begin(), entry.getNexthopList().end(), *it);
+
+    if (foundIt != entry.getNexthopList().end()) {
+      // If next hop is already installed, no reason to register again
+      continue;
+    }
+
     // Add nexthop to FIB entry
     entry.getNexthopList().addNextHop(*it);
 

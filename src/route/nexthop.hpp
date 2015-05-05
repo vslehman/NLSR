@@ -47,6 +47,14 @@ public:
     m_routeCost = rc;
   }
 
+  bool
+  operator==(const NextHop& other) const
+  {
+    return this->getConnectingFaceUri() == other.getConnectingFaceUri() &&
+           this->getRouteCostAsAdjustedInteger() == other.getRouteCostAsAdjustedInteger() &&
+           this->isHyperbolic() == other.isHyperbolic();
+  }
+
   const std::string&
   getConnectingFaceUri() const
   {

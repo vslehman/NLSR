@@ -150,25 +150,8 @@ BOOST_AUTO_TEST_CASE(NextHopsNoChange)
   fib->update("/ndn/name", oldHops);
   face->processEvents(ndn::time::milliseconds(1));
 
-  // Should register face 1 and 2 for /ndn/name
-  BOOST_REQUIRE_EQUAL(interests.size(), 2);
-
-  ndn::nfd::ControlParameters extractedParameters;
-  ndn::Name::Component verb;
-  std::vector<ndn::Interest>::iterator it = interests.begin();
-
-  extractRibCommandParameters(*it, verb, extractedParameters);
-
-  BOOST_CHECK(extractedParameters.getName() == "/ndn/name" &&
-              extractedParameters.getFaceId() == router1FaceId &&
-              verb == ndn::Name::Component("register"));
-
-  ++it;
-  extractRibCommandParameters(*it, verb, extractedParameters);
-
-  BOOST_CHECK(extractedParameters.getName() == "/ndn/name" &&
-              extractedParameters.getFaceId() == router2FaceId &&
-              verb == ndn::Name::Component("register"));
+  // Should not re-register routes
+  BOOST_CHECK_EQUAL(interests.size(), 0);
 }
 
 BOOST_AUTO_TEST_CASE(NextHopsRemoveAll)
@@ -273,13 +256,13 @@ BOOST_AUTO_TEST_CASE(NextHopsMaxPrefixesAfterRecalculation)
   face->processEvents(ndn::time::milliseconds(1));
 
   // To maintain a max 2 face requirement, face 3 should be registered and face 2 should be
-  // unregistered. Face 1 will also be re-registered.
+  // unregistered.
   //
   // FIB
   // Name         NextHops
   // /ndn/name    (faceId=3, cost=5), (faceId=1, cost=10)
 
-  BOOST_CHECK_EQUAL(interests.size(), 3);
+  BOOST_CHECK_EQUAL(interests.size(), 2);
 
   ndn::nfd::ControlParameters extractedParameters;
   ndn::Name::Component verb;
@@ -289,13 +272,6 @@ BOOST_AUTO_TEST_CASE(NextHopsMaxPrefixesAfterRecalculation)
 
   BOOST_CHECK(extractedParameters.getName() == "/ndn/name" &&
               extractedParameters.getFaceId() == router3FaceId &&
-              verb == ndn::Name::Component("register"));
-
-  ++it;
-  extractRibCommandParameters(*it, verb, extractedParameters);
-
-  BOOST_CHECK(extractedParameters.getName() == "/ndn/name" &&
-              extractedParameters.getFaceId() == router1FaceId &&
               verb == ndn::Name::Component("register"));
 
   ++it;
