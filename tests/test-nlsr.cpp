@@ -21,7 +21,6 @@
 
 #include "test-common.hpp"
 #include "control-commands.hpp"
-#include "dummy-face.hpp"
 
 #include "nlsr.hpp"
 
@@ -31,19 +30,42 @@
 namespace nlsr {
 namespace test {
 
-using ndn::DummyFace;
 using ndn::shared_ptr;
 
-BOOST_FIXTURE_TEST_SUITE(TestNlsr, BaseFixture)
+class NlsrFixture : public UnitTestTimeFixture
+{
+public:
+  NlsrFixture()
+    : face(ndn::util::makeDummyClientFace(g_ioService))
+    , nlsr(g_ioService, g_scheduler, ndn::ref(*face))
+    , lsdb(nlsr.getLsdb())
+    , neighbors(nlsr.getAdjacencyList())
+  {
+  }
+
+  void
+  receiveHelloData(const ndn::Name& sender, const ndn::Name& receiver)
+  {
+    ndn::Name dataName(sender);
+    dataName.append("NLSR").append("INFO").append(receiver.wireEncode()).appendVersion();
+
+    shared_ptr<ndn::Data> data = make_shared<ndn::Data>(dataName);
+
+    nlsr.m_helloProtocol.onContentValidated(data);
+  }
+
+public:
+  shared_ptr<ndn::util::DummyClientFace> face;
+  Nlsr nlsr;
+  Lsdb& lsdb;
+  AdjacencyList& neighbors;
+};
+
+BOOST_FIXTURE_TEST_SUITE(TestNlsr, NlsrFixture)
 
 BOOST_AUTO_TEST_CASE(HyperbolicOn_ZeroCostNeighbors)
 {
-  shared_ptr<DummyFace> face = ndn::makeDummyFace();
-  Nlsr nlsr(g_ioService, g_scheduler, ndn::ref(*face));
-
   // Simulate loading configuration file
-  AdjacencyList& neighbors = nlsr.getAdjacencyList();
-
   Adjacent neighborA("/ndn/neighborA", "uri://faceA", 25, Adjacent::STATUS_INACTIVE, 0, 0);
   neighbors.insert(neighborA);
 
@@ -65,12 +87,7 @@ BOOST_AUTO_TEST_CASE(HyperbolicOn_ZeroCostNeighbors)
 
 BOOST_AUTO_TEST_CASE(HyperbolicOff_LinkStateCost)
 {
-  shared_ptr<DummyFace> face = ndn::makeDummyFace();
-  Nlsr nlsr(g_ioService, g_scheduler, ndn::ref(*face));
-
   // Simulate loading configuration file
-  AdjacencyList& neighbors = nlsr.getAdjacencyList();
-
   Adjacent neighborA("/ndn/neighborA", "uri://faceA", 25, Adjacent::STATUS_INACTIVE, 0, 0);
   neighbors.insert(neighborA);
 
@@ -90,9 +107,6 @@ BOOST_AUTO_TEST_CASE(HyperbolicOff_LinkStateCost)
 
 BOOST_AUTO_TEST_CASE(SetEventIntervals)
 {
-  shared_ptr<DummyFace> face = ndn::makeDummyFace();
-  Nlsr nlsr(g_ioService, g_scheduler, ndn::ref(*face));
-
   // Simulate loading configuration file
   ConfParameter& conf = nlsr.getConfParameter();
   conf.setAdjLsaBuildInterval(3);
@@ -109,12 +123,8 @@ BOOST_AUTO_TEST_CASE(SetEventIntervals)
   BOOST_CHECK_EQUAL(rt.getRoutingCalcInterval(), ndn::time::seconds(9));
 }
 
-BOOST_FIXTURE_TEST_CASE(FaceDestroyEvent, UnitTestTimeFixture)
+BOOST_AUTO_TEST_CASE(FaceDestroyEvent)
 {
-  shared_ptr<ndn::util::DummyClientFace> face = ndn::util::makeDummyClientFace(g_ioService);
-  Nlsr nlsr(g_ioService, g_scheduler, ndn::ref(*face));
-  Lsdb& lsdb = nlsr.getLsdb();
-
   // Simulate loading configuration file
   ConfParameter& conf = nlsr.getConfParameter();
   conf.setNetwork("/ndn");
@@ -124,8 +134,6 @@ BOOST_FIXTURE_TEST_CASE(FaceDestroyEvent, UnitTestTimeFixture)
   conf.setRoutingCalcInterval(0);
 
   // Add active neighbors
-  AdjacencyList& neighbors = nlsr.getAdjacencyList();
-
   uint64_t destroyFaceId = 128;
 
   // Create a neighbor whose Face will be destroyed
@@ -222,10 +230,8 @@ BOOST_FIXTURE_TEST_CASE(FaceDestroyEvent, UnitTestTimeFixture)
 //
 // This test is invalid when Issue #2732 is implemented since an Adjacency LSA
 // refresh will not cause RIB entries for other nodes' name prefixes to be refreshed.
-BOOST_FIXTURE_TEST_CASE(FaceDestroyEventInactive, UnitTestTimeFixture)
+BOOST_AUTO_TEST_CASE(FaceDestroyEventInactive)
 {
-  shared_ptr<ndn::util::DummyClientFace> face = ndn::util::makeDummyClientFace(g_ioService);
-  Nlsr nlsr(g_ioService, g_scheduler, ndn::ref(*face));
   Lsdb& lsdb = nlsr.getLsdb();
 
   // Simulate loading configuration file
@@ -238,8 +244,6 @@ BOOST_FIXTURE_TEST_CASE(FaceDestroyEventInactive, UnitTestTimeFixture)
   conf.setRoutingCalcInterval(0);
 
   // Add neighbors
-  AdjacencyList& neighbors = nlsr.getAdjacencyList();
-
   uint64_t destroyFaceId = 128;
 
   // Create an inactive neighbor whose Face will be destroyed
@@ -327,11 +331,8 @@ BOOST_FIXTURE_TEST_CASE(FaceDestroyEventInactive, UnitTestTimeFixture)
   BOOST_CHECK_EQUAL(parameters.getName(), nameToAdvertise);
 }
 
-BOOST_FIXTURE_TEST_CASE(GetCertificate, UnitTestTimeFixture)
+BOOST_AUTO_TEST_CASE(GetCertificate)
 {
-  shared_ptr<ndn::util::DummyClientFace> face = ndn::util::makeDummyClientFace(g_ioService);
-  Nlsr nlsr(g_ioService, g_scheduler, ndn::ref(*face));
-
   // Create certificate
   ndn::Name identity("/TestNLSR/identity");
   identity.appendVersion();
@@ -357,6 +358,71 @@ BOOST_FIXTURE_TEST_CASE(GetCertificate, UnitTestTimeFixture)
   this->advanceClocks(ndn::time::milliseconds(10));
 
   BOOST_CHECK(nlsr.getCertificate(certKey) != nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(BuildAdjLsaAfterHelloResponse)
+{
+  // Configure NLSR
+  ConfParameter& conf = nlsr.getConfParameter();
+  conf.setNetwork("/ndn");
+  conf.setSiteName("/site");
+
+  ndn::Name routerName("/%C1.Router/this-router");
+  conf.setRouterName(routerName);
+
+  conf.setAdjLsaBuildInterval(1);
+
+  // Add neighbors
+  // Router A
+  ndn::Name neighborAName("/ndn/site/%C1.router/routerA");
+  Adjacent neighborA(neighborAName, "uri://faceA", 0, Adjacent::STATUS_INACTIVE, 0, 0);
+  neighbors.insert(neighborA);
+
+  // Router B
+  ndn::Name neighborBName("/ndn/site/%C1.router/routerB");
+  Adjacent neighborB(neighborBName, "uri://faceA", 0, Adjacent::STATUS_INACTIVE, 0, 0);
+  neighbors.insert(neighborB);
+
+  nlsr.initialize();
+  this->advanceClocks(ndn::time::milliseconds(1));
+
+  // Receive HELLO response from Router A
+  receiveHelloData(neighborAName, conf.getRouterPrefix());
+  this->advanceClocks(ndn::time::seconds(1));
+
+  ndn::Name lsaKey = ndn::Name(conf.getRouterPrefix()).append(AdjLsa::TYPE_STRING);
+
+  // Adjacency LSA should be built even though other router is INACTIVE
+  AdjLsa* lsa = lsdb.findAdjLsa(lsaKey);
+  BOOST_REQUIRE(lsa != nullptr);
+  BOOST_CHECK_EQUAL(lsa->getAdl().getSize(), 1);
+
+  // Receive HELLO response from Router B
+  receiveHelloData(neighborBName, conf.getRouterPrefix());
+
+  // Both routers become INACTIVE and HELLO Interests have timed out
+  for (Adjacent& adjacency : neighbors.getAdjList()) {
+    adjacency.setStatus(Adjacent::STATUS_INACTIVE);
+    adjacency.setInterestTimedOutNo(HELLO_RETRIES_DEFAULT);
+  }
+
+  this->advanceClocks(ndn::time::seconds(1));
+
+  // Adjacency LSA should have been removed since this router's adjacencies are INACTIVE
+  // and have timed out
+  lsa = lsdb.findAdjLsa(lsaKey);
+  BOOST_CHECK(lsa == nullptr);
+
+  // Receive HELLO response from Router A and B
+  receiveHelloData(neighborAName, conf.getRouterPrefix());
+  receiveHelloData(neighborBName, conf.getRouterPrefix());
+  this->advanceClocks(ndn::time::seconds(1));
+
+  // Adjacency LSA should be built
+  lsa = lsdb.findAdjLsa(lsaKey);
+  BOOST_REQUIRE(lsa != nullptr);
+  BOOST_CHECK_EQUAL(lsa->getAdl().getSize(), 2);
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

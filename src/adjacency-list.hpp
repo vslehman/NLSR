@@ -29,7 +29,7 @@
 #include "adjacent.hpp"
 
 namespace nlsr {
-class Nlsr;
+class ConfParameter;
 
 class AdjacencyList
 {
@@ -74,7 +74,7 @@ public:
   addAdjacents(AdjacencyList& adl);
 
   bool
-  isAdjLsaBuildable(Nlsr& pnlsr);
+  isAdjLsaBuildable(const ConfParameter& conf) const;
 
   int32_t
   getNumOfActiveNeighbor();
