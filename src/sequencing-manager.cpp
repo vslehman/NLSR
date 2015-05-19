@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "sequencing-manager.hpp"
+#include "conf-parameter.hpp"
 #include "logger.hpp"
 
 namespace nlsr {
@@ -62,7 +63,7 @@ SequencingManager::writeSeqNoToFile() const
 }
 
 void
-SequencingManager::initiateSeqNoFromFile()
+SequencingManager::initiateSeqNoFromFile(ConfParameter& conf)
 {
   _LOG_DEBUG("Seq File Name: " << m_seqFileNameWithPath);
   std::ifstream inputFile(m_seqFileNameWithPath.c_str(), ios::binary);
@@ -70,7 +71,11 @@ SequencingManager::initiateSeqNoFromFile()
     inputFile >> m_combinedSeqNo;
     splitSequenceNo(m_combinedSeqNo);
     m_adjLsaSeq += 10;
-    m_corLsaSeq += 10;
+
+    if (conf.getHyperbolicState() == HYPERBOLIC_STATE_ON) {
+      m_corLsaSeq += 10;
+    }
+
     m_nameLsaSeq += 10;
     combineSequenceNo();
     inputFile.close();

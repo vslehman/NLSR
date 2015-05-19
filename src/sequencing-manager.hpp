@@ -29,6 +29,9 @@
 #include <ndn-cxx/face.hpp>
 
 namespace nlsr {
+
+class ConfParameter;
+
 class SequencingManager
 {
 public:
@@ -124,7 +127,7 @@ public:
   writeSeqNoToFile() const;
 
   void
-  initiateSeqNoFromFile();
+  initiateSeqNoFromFile(ConfParameter& conf);
 
   void
   setSeqFileName(std::string filePath);

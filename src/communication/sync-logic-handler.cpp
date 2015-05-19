@@ -217,12 +217,18 @@ SyncLogicHandler::processUpdateFromSync(const SyncUpdate& update)
       if (isLsaNew(originRouter, CoordinateLsa::TYPE_STRING, update.getCorLsaSeqNo())) {
         _LOG_DEBUG("Received sync update with higher Cor LSA sequence number than entry in LSDB");
 
-        expressInterestForLsa(update, CoordinateLsa::TYPE_STRING, update.getCorLsaSeqNo());
+        if (m_confParam.getHyperbolicState() == HYPERBOLIC_STATE_OFF) {
+          if (update.getCorLsaSeqNo() != 0) {
+            throw std::runtime_error("Tried to fetch a coordinate LSA when link-state routing is enabled");
+          }
+        }
+        else {
+          expressInterestForLsa(update, CoordinateLsa::TYPE_STRING, update.getCorLsaSeqNo());
+        }
       }
     }
-    catch (std::exception& e) {
-      std::cerr << e.what() << std::endl;
-      return;
+    catch (std::runtime_error& e) {
+      throw std::runtime_error("Tried to fetch a coordinate LSA when link-state routing is enabled");
     }
   }
 }

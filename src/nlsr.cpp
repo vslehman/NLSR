@@ -1,4 +1,4 @@
-/* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
+//* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
  * Copyright (c) 2014-2015,  The University of Memphis,
  *                           Regents of the University of California,
@@ -181,7 +181,7 @@ Nlsr::initialize()
   m_nlsrLsdb.setThisRouterPrefix(m_confParam.getRouterPrefix().toUri());
   m_fib.setEntryRefreshTime(2 * m_confParam.getLsaRefreshTime());
   m_sequencingManager.setSeqFileName(m_confParam.getSeqFileDir());
-  m_sequencingManager.initiateSeqNoFromFile();
+  m_sequencingManager.initiateSeqNoFromFile(m_confParam);
 
   m_syncLogicHandler.createSyncSocket(m_confParam.getChronosyncPrefix());
 
@@ -202,7 +202,11 @@ Nlsr::initialize()
   m_routingTable.setRoutingCalcInterval(m_confParam.getRoutingCalcInterval());
 
   m_nlsrLsdb.buildAndInstallOwnNameLsa();
-  m_nlsrLsdb.buildAndInstallOwnCoordinateLsa();
+
+  // Do not install a coordinate LSA when Link-State routing is enabled
+  if (m_confParam.getHyperbolicState() == HYPERBOLIC_STATE_ON) {
+    m_nlsrLsdb.buildAndInstallOwnCoordinateLsa();
+  }
 
   registerKeyPrefix();
   registerLocalhostPrefix();

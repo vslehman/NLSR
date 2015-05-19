@@ -272,8 +272,14 @@ Lsdb::buildAndInstallOwnCoordinateLsa()
                        getLsaExpirationTimePoint(),
                        m_nlsr.getConfParameter().getCorR(),
                        m_nlsr.getConfParameter().getCorTheta());
-  m_nlsr.getSequencingManager().increaseCorLsaSeq();
+
+  // Only sync coordinate LSAs if Link-State routing is not enabled
+  if (m_nlsr.getConfParameter().getHyperbolicState() != HYPERBOLIC_STATE_OFF) {
+    m_nlsr.getSequencingManager().increaseCorLsaSeq();
+  }
+
   installCoordinateLsa(corLsa);
+
   return true;
 }
 
@@ -729,7 +735,11 @@ Lsdb::exprireOrRefreshCoordinateLsa(const ndn::Name& lsaKey,
         _LOG_DEBUG("Deleting Coordinate Lsa");
         chkCorLsa->writeLog();
         chkCorLsa->setLsSeqNo(chkCorLsa->getLsSeqNo() + 1);
-        m_nlsr.getSequencingManager().setCorLsaSeq(chkCorLsa->getLsSeqNo());
+
+        if (m_nlsr.getConfParameter().getHyperbolicState() != HYPERBOLIC_STATE_OFF) {
+          m_nlsr.getSequencingManager().setCorLsaSeq(chkCorLsa->getLsSeqNo());
+        }
+
         chkCorLsa->setExpirationTimePoint(getLsaExpirationTimePoint());
         _LOG_DEBUG("Adding Coordinate Lsa");
         chkCorLsa->writeLog();
@@ -738,7 +748,11 @@ Lsdb::exprireOrRefreshCoordinateLsa(const ndn::Name& lsaKey,
                                         chkCorLsa->getKey(),
                                         chkCorLsa->getLsSeqNo(),
                                         m_lsaRefreshTime));
-        m_sync.publishRoutingUpdate();
+
+        // Only sync coordinate LSAs if Link-State routing is not enabled
+        if (m_nlsr.getConfParameter().getHyperbolicState() != HYPERBOLIC_STATE_OFF) {
+          m_sync.publishRoutingUpdate();
+        }
       }
       else {
         _LOG_DEBUG("Other's Cor LSA, so removing form LSDB");
@@ -868,6 +882,10 @@ Lsdb::processInterestForCoordinateLsa(const ndn::Interest& interest,
                                       const ndn::Name& lsaKey,
                                       uint64_t seqNo)
 {
+  if (m_nlsr.getConfParameter().getHyperbolicState() == HYPERBOLIC_STATE_OFF) {
+    throw std::runtime_error("Received Interest for a coordinate LSA when link-state routing is enabled");
+  }
+
   CoordinateLsa* corLsa = m_nlsr.getLsdb().findCoordinateLsa(lsaKey);
   if (corLsa != 0) {
     if (corLsa->getLsSeqNo() == seqNo) {
