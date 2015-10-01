@@ -49,9 +49,12 @@ RoutingTable::calculate(Nlsr& pnlsr)
   if (pnlsr.getIsRoutingTableCalculating() == false) {
     //setting routing table calculation
     pnlsr.setIsRoutingTableCalculating(true);
-    if (pnlsr.getLsdb().doesLsaExist(
-          pnlsr.getConfParameter().getRouterPrefix().toUri() + "/" + "adjacency",
-          std::string("adjacency"))) {
+
+    bool isHrEnabled = pnlsr.getConfParameter().getHyperbolicState() == HYPERBOLIC_STATE_ON;
+
+    if ((!isHrEnabled && pnlsr.getLsdb().doesLsaExist(pnlsr.getConfParameter().getRouterPrefix().toUri() + "/" + "adjacency", std::string("adjacency"))) ||
+        (isHrEnabled && pnlsr.getLsdb().doesLsaExist(pnlsr.getConfParameter().getRouterPrefix().toUri() + "/" + "coordinate", std::string("coordinate"))))
+    {
       if (pnlsr.getIsBuildAdjLsaSheduled() != 1) {
         _LOG_TRACE("Clearing old routing table");
         clearRoutingTable();
@@ -127,7 +130,7 @@ void
 RoutingTable::calculateHypRoutingTable(Nlsr& nlsr)
 {
   Map map;
-  map.createFromAdjLsdb(nlsr);
+  map.createFromCoordinateLsdb(nlsr);
   map.writeLog();
 
   size_t nRouters = map.getMapSize();

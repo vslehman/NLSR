@@ -70,8 +70,13 @@ SequencingManager::initiateSeqNoFromFile(ConfParameter& conf)
   if (inputFile.good()) {
     inputFile >> m_combinedSeqNo;
     splitSequenceNo(m_combinedSeqNo);
-    m_adjLsaSeq += 10;
 
+    // Increment the Adjacency LSA seq. no only if link-state is enabled
+    if (conf.getHyperbolicState() == HYPERBOLIC_STATE_OFF) {
+      m_adjLsaSeq += 10;
+    }
+
+    // Increment the Coordinate LSA seq. no only if link-state is enabled
     if (conf.getHyperbolicState() == HYPERBOLIC_STATE_ON) {
       m_corLsaSeq += 10;
     }

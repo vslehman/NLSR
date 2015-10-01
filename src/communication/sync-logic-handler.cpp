@@ -211,7 +211,14 @@ SyncLogicHandler::processUpdateFromSync(const SyncUpdate& update)
       if (isLsaNew(originRouter, AdjLsa::TYPE_STRING, update.getAdjLsaSeqNo())) {
         _LOG_DEBUG("Received sync update with higher Adj LSA sequence number than entry in LSDB");
 
-        expressInterestForLsa(update, AdjLsa::TYPE_STRING, update.getAdjLsaSeqNo());
+        if (m_confParam.getHyperbolicState() == HYPERBOLIC_STATE_ON) {
+          if (update.getAdjLsaSeqNo() != 0) {
+            throw std::runtime_error("Tried to fetch an adjacency LSA when hyperbolic routing is enabled");
+          }
+        }
+        else {
+          expressInterestForLsa(update, AdjLsa::TYPE_STRING, update.getAdjLsaSeqNo());
+        }
       }
 
       if (isLsaNew(originRouter, CoordinateLsa::TYPE_STRING, update.getCorLsaSeqNo())) {
