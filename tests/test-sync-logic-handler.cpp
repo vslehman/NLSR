@@ -49,7 +49,7 @@ public:
   }
 
   void
-  receiveUpdate(std::string prefix, uint64_t seqNo)
+  receiveUpdate(std::string prefix, uint64_t seqNo, std::shared_ptr<ndn::Data> data = nullptr)
   {
     Sync::MissingDataInfo info = {prefix, 0, seqNo};
 
@@ -59,7 +59,12 @@ public:
     face->processEvents(ndn::time::milliseconds(1));
     face->sentInterests.clear();
 
-    sync.onNsyncUpdate(updates, NULL);
+    if (data == nullptr) {
+      data = std::make_shared<ndn::Data>(ndn::Name(prefix));
+      data->setTag(make_shared<ndn::lp::IncomingFaceIdTag>(255));
+    }
+
+    sync.onNsyncUpdate(updates, NULL, data);
 
     face->processEvents(ndn::time::milliseconds(1));
   }
@@ -188,6 +193,35 @@ BOOST_AUTO_TEST_CASE(CreateSyncSocketOnInitialization) // Bug #2649
 
   // Publish a routing update before an Adjacency LSA is built
   BOOST_CHECK_NO_THROW(sync.publishRoutingUpdate());
+}
+
+BOOST_AUTO_TEST_CASE(IncomingFaceId)
+{
+  // Receive Sync update and Data with IncomingFaceId
+  uint64_t incomingFaceId = 261;
+  std::string updateName = nlsr.getConfParameter().getLsaPrefix().toUri() +
+                           CONFIG_SITE + "/%C1.Router/other-router/";
+
+  shared_ptr<ndn::Data> data = std::make_shared<ndn::Data>(ndn::Name(updateName));
+  data->setTag(make_shared<ndn::lp::IncomingFaceIdTag>(incomingFaceId));
+
+  face->sentInterests.clear();
+  receiveUpdate(updateName, 1, data);
+
+  const auto& interests = face->sentInterests;
+  BOOST_REQUIRE(interests.size() > 0);
+
+  using ndn::lp::NextHopFaceIdTag;
+  shared_ptr<NextHopFaceIdTag> nextHopFaceIdTag = interests[0].getTag<NextHopFaceIdTag>();
+
+  BOOST_REQUIRE(nextHopFaceIdTag != nullptr);
+  BOOST_CHECK_EQUAL(*nextHopFaceIdTag, incomingFaceId);
+
+  // Receive Sync update and Data without IncomingFaceId
+  data = std::make_shared<ndn::Data>(ndn::Name(updateName));
+
+  face->sentInterests.clear();
+  BOOST_CHECK_THROW(receiveUpdate(updateName, 1, data), SyncLogicHandler::Error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -782,7 +782,7 @@ Lsdb::exprireOrRefreshCoordinateLsa(const ndn::Name& lsaKey,
 
 
 void
-Lsdb::expressInterest(const ndn::Name& interestName, uint32_t timeoutCount,
+Lsdb::expressInterest(const ndn::Name& interestName, uint32_t timeoutCount, uint64_t incomingFaceId,
                       steady_clock::TimePoint deadline)
 {
   if (deadline == DEFAULT_LSA_RETRIEVAL_DEADLINE) {
@@ -805,13 +805,14 @@ Lsdb::expressInterest(const ndn::Name& interestName, uint32_t timeoutCount,
   }
 
   interest.setInterestLifetime(m_nlsr.getConfParameter().getLsaInterestLifetime());
+  interest.setTag(make_shared<ndn::lp::NextHopFaceIdTag>(incomingFaceId));
 
   _LOG_DEBUG("Expressing Interest for LSA: " << interestName << " Seq number: " << seqNo);
   m_nlsr.getNlsrFace().expressInterest(interest,
                                        ndn::bind(&Lsdb::onContent,
                                                  this, _2, deadline, lsaName, seqNo),
                                        ndn::bind(&Lsdb::processInterestTimedOut,
-                                                 this, _1, timeoutCount, deadline, lsaName, seqNo));
+                                                 this, _1, timeoutCount, deadline, lsaName, seqNo, incomingFaceId));
 }
 
 void
@@ -1057,7 +1058,7 @@ Lsdb::processContentCoordinateLsa(const ndn::Name& lsaKey,
 void
 Lsdb::processInterestTimedOut(const ndn::Interest& interest, uint32_t retransmitNo,
                               const ndn::time::steady_clock::TimePoint& deadline, ndn::Name lsaName,
-                              uint64_t seqNo)
+                              uint64_t seqNo, uint64_t incomingFaceId)
 {
   const ndn::Name& interestName = interest.getName();
   _LOG_DEBUG("Interest timed out for  LSA: " << interestName);
@@ -1067,7 +1068,7 @@ Lsdb::processInterestTimedOut(const ndn::Interest& interest, uint32_t retransmit
     SequenceNumberMap::const_iterator it = m_highestSeqNo.find(lsaName);
 
     if (it != m_highestSeqNo.end() &&  it->second == seqNo) {
-      expressInterest(interestName, retransmitNo + 1, deadline);
+      expressInterest(interestName, retransmitNo + 1, incomingFaceId, deadline);
     }
   }
 }

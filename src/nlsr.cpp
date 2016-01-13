@@ -74,6 +74,7 @@ Nlsr::Nlsr(boost::asio::io_service& ioService, ndn::Scheduler& scheduler, ndn::F
                             m_certStore)
   , m_faceMonitor(m_nlsrFace)
   , m_firstHelloInterval(FIRST_HELLO_INTERVAL_DEFAULT)
+  , m_nfdController(m_nlsrFace, m_keyChain)
 {
   m_faceMonitor.onNotification.connect(bind(&Nlsr::onFaceEventNotification, this, _1));
   m_faceMonitor.start();
@@ -138,14 +139,53 @@ Nlsr::setLsaInterestFilter()
 void
 Nlsr::setStrategies()
 {
-  const std::string strategy("ndn:/localhost/nfd/strategy/multicast");
+  const std::string multicastStrategy("ndn:/localhost/nfd/strategy/multicast");
 
   ndn::Name broadcastKeyPrefix = DEFAULT_BROADCAST_PREFIX;
   broadcastKeyPrefix.append("KEYS");
 
-  m_fib.setStrategy(m_confParam.getLsaPrefix(), strategy, 0);
-  m_fib.setStrategy(broadcastKeyPrefix, strategy, 0);
-  m_fib.setStrategy(m_confParam.getChronosyncPrefix(), strategy, 0);
+  m_fib.setStrategy(broadcastKeyPrefix, multicastStrategy, 0);
+  m_fib.setStrategy(m_confParam.getChronosyncPrefix(), multicastStrategy, 0);
+
+  const std::string clientControlStrategy("ndn:/localhost/nfd/strategy/client-control");
+  m_fib.setStrategy(m_confParam.getLsaPrefix(), clientControlStrategy, 0);
+}
+
+void
+Nlsr::enableLocalControlFeatures()
+{
+  _LOG_DEBUG("Enabling Local Control features");
+
+  m_nfdController.start<ndn::nfd::FaceEnableLocalControlCommand>(
+    ndn::nfd::ControlParameters()
+      .setLocalControlFeature(ndn::nfd::LOCAL_CONTROL_FEATURE_INCOMING_FACE_ID),
+    bind(&Nlsr::onLocalControlFeatureSuccess, this, "Incoming Face Indication"),
+    bind(&Nlsr::onLocalControlFeatureError, this, "Incoming Face Indication", _1, _2));
+
+  m_nfdController.start<ndn::nfd::FaceEnableLocalControlCommand>(
+    ndn::nfd::ControlParameters()
+      .setLocalControlFeature(ndn::nfd::LOCAL_CONTROL_FEATURE_NEXT_HOP_FACE_ID),
+    bind(&Nlsr::onLocalControlFeatureSuccess, this, "Consumer Controlled Forwarding"),
+    bind(&Nlsr::onLocalControlFeatureError, this, "Consumer Controlled Forwarding", _1, _2));
+}
+
+void
+Nlsr::onLocalControlFeatureSuccess(const std::string& feature)
+{
+  _LOG_DEBUG("Local control feature enabled: " << feature);
+}
+
+void
+Nlsr::onLocalControlFeatureError(const std::string& feature,
+                                 uint32_t code,
+                                 const std::string& reason)
+{
+  std::ostringstream os;
+  os << "Could not enable Local Control feature: " << feature <<
+        " (code: " << code << ", reason: " << reason << ")";
+  _LOG_FATAL(os.str());
+
+  throw Error(os.str());
 }
 
 void
@@ -194,6 +234,7 @@ Nlsr::initialize()
   /* Logging end */
   initializeKey();
   setStrategies();
+  enableLocalControlFeatures();
   _LOG_DEBUG("Default NLSR identity: " << m_signingInfo.getSignerName());
   setInfoInterestFilter();
   setLsaInterestFilter();

@@ -63,7 +63,7 @@ struct MissingDataInfo {
 class SyncLogic
 {
 public:
-  typedef function< void (const std::vector<MissingDataInfo> & ) > LogicUpdateCallback;
+  typedef function< void (const std::vector<MissingDataInfo> &, const std::shared_ptr<const ndn::Data>&) > LogicUpdateCallback;
   typedef function< void (const std::string &/*prefix*/ ) > LogicRemoveCallback;
   typedef function< void (const std::string &)> LogicPerBranchCallback;
 
@@ -144,7 +144,10 @@ private:
 
   void
   processSyncData (const ndn::Name &name,
-                   DigestConstPtr digest, const char *wireData, size_t len);
+                   DigestConstPtr digest,
+                   const char *wireData,
+                   size_t len,
+                   const std::shared_ptr<const ndn::Data>& data);
 
   void
   processSyncRecoveryInterest (const ndn::Name &name,

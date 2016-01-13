@@ -254,13 +254,13 @@ SyncLogic::onSyncDataValidated(const shared_ptr<const Data>& data)
 
       if (type == "normal")
         {
-          processSyncData (name, digest, wireData, len);
+          processSyncData (name, digest, wireData, len, data);
         }
       else
         {
           // timer is always restarted when we schedule recovery
           m_scheduler.cancelEvent (m_reexpressingRecoveryInterestId);
-          processSyncData (name, digest, wireData, len);
+          processSyncData (name, digest, wireData, len, data);
         }
     }
   catch (Error::DigestCalculationError &e)
@@ -338,8 +338,11 @@ SyncLogic::processSyncInterest (const Name &name, DigestConstPtr digest,
 }
 
 void
-SyncLogic::processSyncData (const Name &name, DigestConstPtr digest,
-                            const char *wireData, size_t len)
+SyncLogic::processSyncData (const Name &name,
+                            DigestConstPtr digest,
+                            const char *wireData,
+                            size_t len,
+                            const shared_ptr<const Data>& data)
 {
   DiffStatePtr diffLog = make_shared<DiffState> ();
   bool ownInterestSatisfied = false;
@@ -435,7 +438,7 @@ SyncLogic::processSyncData (const Name &name, DigestConstPtr digest,
       {
         if (!m_perBranch)
         {
-           m_onUpdate(v);
+           m_onUpdate(v, data);
         }
       }
 

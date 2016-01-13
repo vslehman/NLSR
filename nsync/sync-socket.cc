@@ -53,7 +53,7 @@ SyncSocket::SyncSocket (const Name &syncPrefix,
   , m_syncLogic (syncPrefix,
                  validator,
                  face,
-                 bind(&SyncSocket::passCallback, this, _1),
+                 bind(&SyncSocket::passCallback, this, _1, _2),
                  rmCallback)
 {
 }

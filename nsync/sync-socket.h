@@ -44,7 +44,7 @@ namespace Sync {
 class SyncSocket
 {
 public:
-  typedef ndn::function<void(const std::vector<MissingDataInfo> &, SyncSocket *)> NewDataCallback;
+  typedef ndn::function<void(const std::vector<MissingDataInfo> &, SyncSocket *, const std::shared_ptr<const ndn::Data>&)> NewDataCallback;
   typedef ndn::function<void(const std::string &/*prefix*/)> RemoveCallback;
 
   /**
@@ -100,9 +100,9 @@ private:
                       const ndn::Name &prefix, uint64_t session,uint64_t seq);
 
   void
-  passCallback(const std::vector<MissingDataInfo> &v)
+  passCallback(const std::vector<MissingDataInfo> &v, const std::shared_ptr<const ndn::Data>& data)
   {
-    m_newDataCallback(v, this);
+    m_newDataCallback(v, this, data);
   }
 
   void

@@ -98,6 +98,8 @@ public:
 
   ndn::Name REGISTER_COMMAND_PREFIX;
   ndn::Name::Component REGISTER_VERB;
+
+  static const uint64_t FACEID_NULL = 255;
 };
 
 BOOST_FIXTURE_TEST_SUITE(TestLsdb, LsdbFixture)
@@ -110,7 +112,7 @@ BOOST_AUTO_TEST_CASE(LsdbSync)
   ndn::Name oldInterestName = interestName;
   oldInterestName.appendNumber(oldSeqNo);
 
-  lsdb.expressInterest(oldInterestName, 0);
+  lsdb.expressInterest(oldInterestName, 0, FACEID_NULL);
   face->processEvents(ndn::time::milliseconds(1));
 
   std::vector<ndn::Interest>& interests = face->sentInterests;
@@ -125,7 +127,7 @@ BOOST_AUTO_TEST_CASE(LsdbSync)
                                      ndn::time::seconds(static_cast<int>(LSA_REFRESH_TIME_MAX));
 
   // Simulate an LSA interest timeout
-  lsdb.processInterestTimedOut(oldInterestName, 0, deadline, interestName, oldSeqNo);
+  lsdb.processInterestTimedOut(oldInterestName, 0, deadline, interestName, oldSeqNo, FACEID_NULL);
   face->processEvents(ndn::time::milliseconds(1));
 
   BOOST_REQUIRE(interests.size() > 0);
@@ -139,7 +141,7 @@ BOOST_AUTO_TEST_CASE(LsdbSync)
   ndn::Name newInterestName = interestName;
   newInterestName.appendNumber(newSeqNo);
 
-  lsdb.expressInterest(newInterestName, 0);
+  lsdb.expressInterest(newInterestName, 0, FACEID_NULL);
   face->processEvents(ndn::time::milliseconds(1));
 
   BOOST_REQUIRE(interests.size() > 0);
@@ -149,7 +151,7 @@ BOOST_AUTO_TEST_CASE(LsdbSync)
   interests.clear();
 
   // Simulate an LSA interest timeout where the sequence number is outdated
-  lsdb.processInterestTimedOut(oldInterestName, 0, deadline, interestName, oldSeqNo);
+  lsdb.processInterestTimedOut(oldInterestName, 0, deadline, interestName, oldSeqNo, FACEID_NULL);
   face->processEvents(ndn::time::milliseconds(1));
 
   // Interest should not be expressed for outdated sequence number

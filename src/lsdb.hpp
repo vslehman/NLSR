@@ -189,7 +189,7 @@ private:
                                 uint64_t seqNo);
 public:
   void
-  expressInterest(const ndn::Name& interestName, uint32_t timeoutCount,
+  expressInterest(const ndn::Name& interestName, uint32_t timeoutCount, uint64_t incomingFaceId,
                   steady_clock::TimePoint deadline = DEFAULT_LSA_RETRIEVAL_DEADLINE);
 
   void
@@ -256,7 +256,7 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   void
   processInterestTimedOut(const ndn::Interest& interest, uint32_t retransmitNo,
                           const steady_clock::TimePoint& deadline, ndn::Name lsaName,
-                          uint64_t seqNo);
+                          uint64_t seqNo, uint64_t incomingFaceId);
 
 private:
   system_clock::TimePoint

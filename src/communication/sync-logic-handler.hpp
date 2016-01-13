@@ -57,7 +57,9 @@ public:
   SyncLogicHandler(ndn::Face& face, Lsdb& lsdb, ConfParameter& conf, SequencingManager& seqManager);
 
   void
-  onNsyncUpdate(const std::vector<Sync::MissingDataInfo>& v, Sync::SyncSocket* socket);
+  onNsyncUpdate(const std::vector<Sync::MissingDataInfo>& v,
+                Sync::SyncSocket* socket,
+                const std::shared_ptr<const ndn::Data>& data);
 
   void
   onNsyncRemoval(const std::string& prefix);
@@ -73,13 +75,16 @@ private:
   buildUpdatePrefix();
 
   void
-  processUpdateFromSync(const SyncUpdate& updateName);
+  processUpdateFromSync(const SyncUpdate& updateName, uint64_t incomingFaceId);
 
   bool
   isLsaNew(const ndn::Name& originRouter, const std::string& lsaType, uint64_t seqNo);
 
   void
-  expressInterestForLsa(const SyncUpdate& updateName, std::string lsaType, uint64_t seqNo);
+  expressInterestForLsa(const SyncUpdate& updateName,
+                        std::string lsaType,
+                        uint64_t seqNo,
+                        uint64_t incomingFaceId);
 
   void
   publishSyncUpdate(const ndn::Name& updatePrefix, uint64_t seqNo);

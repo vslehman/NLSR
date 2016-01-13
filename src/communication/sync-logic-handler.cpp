@@ -158,22 +158,35 @@ SyncLogicHandler::createSyncSocket(const ndn::Name& syncPrefix)
 
   m_syncSocket = ndn::make_shared<Sync::SyncSocket>(m_syncPrefix, m_validator, facePtr,
                                                     ndn::bind(&SyncLogicHandler::onNsyncUpdate,
-                                                              this, _1, _2),
+                                                              this, _1, _2, _3),
                                                     ndn::bind(&SyncLogicHandler::onNsyncRemoval,
                                                               this, _1));
 }
 
 void
-SyncLogicHandler::onNsyncUpdate(const vector<Sync::MissingDataInfo>& v, Sync::SyncSocket* socket)
+SyncLogicHandler::onNsyncUpdate(const vector<Sync::MissingDataInfo>& v,
+                                Sync::SyncSocket* socket,
+                                const shared_ptr<const Data>& data)
 {
   _LOG_DEBUG("Received Nsync update event");
 
   for (size_t i = 0; i < v.size(); i++){
-    _LOG_DEBUG("Update Name: " << v[i].prefix << " Seq no: " << v[i].high.getSeq());
-
     SyncUpdate update(v[i].prefix, v[i].high.getSeq());
 
-    processUpdateFromSync(update);
+    shared_ptr<lp::IncomingFaceIdTag> incomingFaceIdTag = data->getTag<lp::IncomingFaceIdTag>();
+
+    if (incomingFaceIdTag != nullptr) {
+      _LOG_DEBUG("Update Name: " << update.getName() <<
+                 ", SeqNo: " << update.getSequencingManager().getCombinedSeqNo() <<
+                 ", incomingFaceId: " << *incomingFaceIdTag);
+      processUpdateFromSync(update, *incomingFaceIdTag);
+    }
+    else {
+      std::ostringstream os;
+      os << "Received Sync update Data without an IncomingFaceId tag, Update Name: " <<
+            update.getName() << " Seq no: " << update.getSequencingManager().getCombinedSeqNo();
+      throw Error(os.str());
+    }
   }
 }
 
@@ -184,7 +197,7 @@ SyncLogicHandler::onNsyncRemoval(const string& prefix)
 }
 
 void
-SyncLogicHandler::processUpdateFromSync(const SyncUpdate& update)
+SyncLogicHandler::processUpdateFromSync(const SyncUpdate& update, uint64_t incomingFaceId)
 {
   ndn::Name originRouter;
 
@@ -205,7 +218,10 @@ SyncLogicHandler::processUpdateFromSync(const SyncUpdate& update)
       if (isLsaNew(originRouter, NameLsa::TYPE_STRING, update.getNameLsaSeqNo())) {
         _LOG_DEBUG("Received sync update with higher Name LSA sequence number than entry in LSDB");
 
-        expressInterestForLsa(update, NameLsa::TYPE_STRING, update.getNameLsaSeqNo());
+        expressInterestForLsa(update,
+                              NameLsa::TYPE_STRING,
+                              update.getNameLsaSeqNo(),
+                              incomingFaceId);
       }
 
       if (isLsaNew(originRouter, AdjLsa::TYPE_STRING, update.getAdjLsaSeqNo())) {
@@ -217,7 +233,7 @@ SyncLogicHandler::processUpdateFromSync(const SyncUpdate& update)
           }
         }
         else {
-          expressInterestForLsa(update, AdjLsa::TYPE_STRING, update.getAdjLsaSeqNo());
+          expressInterestForLsa(update, AdjLsa::TYPE_STRING, update.getAdjLsaSeqNo(), incomingFaceId);
         }
       }
 
@@ -230,7 +246,10 @@ SyncLogicHandler::processUpdateFromSync(const SyncUpdate& update)
           }
         }
         else {
-          expressInterestForLsa(update, CoordinateLsa::TYPE_STRING, update.getCorLsaSeqNo());
+          expressInterestForLsa(update,
+                                CoordinateLsa::TYPE_STRING,
+                                update.getCorLsaSeqNo(),
+                                incomingFaceId);
         }
       }
     }
@@ -264,14 +283,16 @@ SyncLogicHandler::isLsaNew(const ndn::Name& originRouter, const std::string& lsa
 }
 
 void
-SyncLogicHandler::expressInterestForLsa(const SyncUpdate& update, std::string lsaType,
-                                        uint64_t seqNo)
+SyncLogicHandler::expressInterestForLsa(const SyncUpdate& update,
+                                        std::string lsaType,
+                                        uint64_t seqNo,
+                                        uint64_t incomingFaceId)
 {
   ndn::Name interest(update.getName());
   interest.append(lsaType);
   interest.appendNumber(seqNo);
 
-  m_lsdb.expressInterest(interest, 0);
+  m_lsdb.expressInterest(interest, 0, incomingFaceId);
 }
 
 void

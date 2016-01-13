@@ -29,6 +29,7 @@
 #include <ndn-cxx/security/key-chain.hpp>
 #include <ndn-cxx/security/certificate-cache-ttl.hpp>
 #include <ndn-cxx/util/scheduler.hpp>
+#include <ndn-cxx/management/nfd-controller.hpp>
 #include <ndn-cxx/management/nfd-face-event-notification.hpp>
 #include <ndn-cxx/management/nfd-face-monitor.hpp>
 
@@ -325,6 +326,15 @@ private:
   registerLocalhostPrefix();
 
   void
+  enableLocalControlFeatures();
+
+  void
+  onLocalControlFeatureSuccess(const std::string& feature);
+
+  void
+  onLocalControlFeatureError(const std::string& feature, uint32_t code, const std::string& reason);
+
+  void
   onKeyInterest(const ndn::Name& name, const ndn::Interest& interest);
 
   void
@@ -383,6 +393,7 @@ private:
   ndn::nfd::FaceMonitor m_faceMonitor;
 
   uint32_t m_firstHelloInterval;
+  ndn::nfd::Controller m_nfdController;
 };
 
 } //namespace nlsr
