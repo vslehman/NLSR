@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  The University of Memphis,
+ * Copyright (c) 2014-2016,  The University of Memphis,
  *                           Regents of the University of California,
  *                           Arizona Board of Regents.
  *
@@ -42,18 +42,27 @@ public:
   }
 
   void
-  scheduleInterest(uint32_t seconds);
+  start();
+
+  void
+  processInterest(const ndn::Name& name, const ndn::Interest& interest);
+
+  void
+  setFirstHelloInterval(uint32_t interval)
+  {
+    m_firstHelloInterval = interval;
+  }
+
+private:
+  void
+  scheduleInterest(const ndn::time::milliseconds& delay);
 
   void
   expressInterest(const ndn::Name& interestNamePrefix, uint32_t seconds);
 
   void
-  sendScheduledInterest(uint32_t seconds);
+  sendScheduledInterest();
 
-  void
-  processInterest(const ndn::Name& name, const ndn::Interest& interest);
-
-private:
   void
   processInterestTimedOut(const ndn::Interest& interest);
 
@@ -63,6 +72,12 @@ private:
 PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   void
   onContentValidated(const ndn::shared_ptr<const ndn::Data>& data);
+
+  uint32_t
+  getFirstHelloInterval() const
+  {
+    return m_firstHelloInterval;
+  }
 
 private:
   void
@@ -83,6 +98,8 @@ private:
 private:
   Nlsr& m_nlsr;
   ndn::Scheduler& m_scheduler;
+
+  uint32_t m_firstHelloInterval;
 
   static const std::string INFO_COMPONENT;
   static const std::string NLSR_COMPONENT;

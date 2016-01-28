@@ -1,7 +1,8 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014  University of Memphis,
- *                     Regents of the University of California
+ * Copyright (c) 2014-2016,  The University of Memphis,
+ *                           Regents of the University of California,
+ *                           Arizona Board of Regents.
  *
  * This file is part of NLSR (Named-data Link State Routing).
  * See AUTHORS.md for complete list of NLSR authors and contributors.
@@ -16,22 +17,22 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * NLSR, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
- *
- * \author A K M Mahmudul Hoque <ahoque1@memphis.edu>
- *
  **/
-#include <iostream>
-#include <string>
-#include <list>
 
 #include "routing-table.hpp"
-#include "nlsr.hpp"
-#include "map.hpp"
+
 #include "conf-parameter.hpp"
+#include "logger.hpp"
+#include "map.hpp"
+#include "name-prefix-table.hpp"
+#include "nlsr.hpp"
 #include "routing-table-calculator.hpp"
 #include "routing-table-entry.hpp"
-#include "name-prefix-table.hpp"
-#include "logger.hpp"
+#include "utility/jitter.hpp"
+
+#include <iostream>
+#include <list>
+#include <string>
 
 namespace nlsr {
 
@@ -162,11 +163,11 @@ void
 RoutingTable::scheduleRoutingTableCalculation(Nlsr& pnlsr)
 {
   if (pnlsr.getIsRouteCalculationScheduled() != true) {
-    _LOG_DEBUG("Scheduling routing table calculation in " << m_routingCalcInterval);
+    ndn::time::milliseconds delay = util::jitter::getTimeWithJitter(m_routingCalcInterval);
 
-    m_scheduler.scheduleEvent(m_routingCalcInterval,
-                              ndn::bind(&RoutingTable::calculate, this, ndn::ref(pnlsr)));
+    _LOG_DEBUG("Scheduling routing table calculation in " << delay);
 
+    m_scheduler.scheduleEvent(delay, ndn::bind(&RoutingTable::calculate, this, std::ref(pnlsr)));
     pnlsr.setIsRouteCalculationScheduled(true);
   }
 }

@@ -71,10 +71,10 @@ public:
   void
   setRoutingCalcInterval(uint32_t interval)
   {
-    m_routingCalcInterval = ndn::time::seconds(interval);
+    m_routingCalcInterval = interval;
   }
 
-  const ndn::time::seconds&
+  uint32_t
   getRoutingCalcInterval() const
   {
     return m_routingCalcInterval;
@@ -107,7 +107,7 @@ private:
   std::list<RoutingTableEntry> m_rTable;
   std::list<RoutingTableEntry> m_dryTable;
 
-  ndn::time::seconds m_routingCalcInterval;
+  uint32_t m_routingCalcInterval;
 };
 
 }//namespace nlsr

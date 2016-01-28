@@ -297,12 +297,6 @@ public:
   void
   daemonize();
 
-  uint32_t
-  getFirstHelloInterval() const
-  {
-    return m_firstHelloInterval;
-  }
-
 PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   void
   addCertificateToCache(ndn::shared_ptr<ndn::IdentityCertificate> certificate)
@@ -316,6 +310,12 @@ PUBLIC_WITH_TESTS_ELSE_PRIVATE:
   getCertificateStore()
   {
     return m_certStore;
+  }
+
+  HelloProtocol&
+  getHelloProtocol()
+  {
+    return m_helloProtocol;
   }
 
 private:
@@ -348,12 +348,6 @@ private:
 
   void
   onFaceEventNotification(const ndn::nfd::FaceEventNotification& faceEventNotification);
-
-  void
-  setFirstHelloInterval(uint32_t interval)
-  {
-    m_firstHelloInterval = interval;
-  }
 
 public:
   static const ndn::Name LOCALHOST_PREFIX;
@@ -391,8 +385,6 @@ private:
   update::PrefixUpdateProcessor m_prefixUpdateProcessor;
 
   ndn::nfd::FaceMonitor m_faceMonitor;
-
-  uint32_t m_firstHelloInterval;
   ndn::nfd::Controller m_nfdController;
 };
 

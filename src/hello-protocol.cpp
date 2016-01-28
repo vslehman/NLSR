@@ -1,7 +1,8 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014  University of Memphis,
- *                     Regents of the University of California
+ * Copyright (c) 2014-2016,  The University of Memphis,
+ *                           Regents of the University of California,
+ *                           Arizona Board of Regents.
  *
  * This file is part of NLSR (Named-data Link State Routing).
  * See AUTHORS.md for complete list of NLSR authors and contributors.
@@ -16,15 +17,15 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * NLSR, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
- *
- * \author A K M Mahmudul Hoque <ahoque1@memphis.edu>
- *
  **/
-#include "nlsr.hpp"
-#include "lsdb.hpp"
+
 #include "hello-protocol.hpp"
-#include "utility/name-helper.hpp"
+
 #include "logger.hpp"
+#include "lsdb.hpp"
+#include "nlsr.hpp"
+#include "utility/jitter.hpp"
+#include "utility/name-helper.hpp"
 
 namespace nlsr {
 
@@ -49,7 +50,7 @@ HelloProtocol::expressInterest(const ndn::Name& interestName, uint32_t seconds)
 }
 
 void
-HelloProtocol::sendScheduledInterest(uint32_t seconds)
+HelloProtocol::sendScheduledInterest()
 {
   std::list<Adjacent> adjList = m_nlsr.getAdjacencyList().getAdjList();
   for (std::list<Adjacent>::iterator it = adjList.begin(); it != adjList.end();
@@ -68,16 +69,22 @@ HelloProtocol::sendScheduledInterest(uint32_t seconds)
                        (*it).getLinkCost(), ndn::time::milliseconds::max());
     }
   }
-  scheduleInterest(m_nlsr.getConfParameter().getInfoInterestInterval());
+  scheduleInterest(ndn::time::seconds(m_nlsr.getConfParameter().getInfoInterestInterval()));
 }
 
 void
-HelloProtocol::scheduleInterest(uint32_t seconds)
+HelloProtocol::start()
 {
-  _LOG_DEBUG("Scheduling HELLO Interests in " << ndn::time::seconds(seconds));
+  scheduleInterest(util::jitter::getTimeWithJitter(m_firstHelloInterval));
+}
 
-  m_scheduler.scheduleEvent(ndn::time::seconds(seconds),
-                            ndn::bind(&HelloProtocol::sendScheduledInterest, this, seconds));
+void
+HelloProtocol::scheduleInterest(const ndn::time::milliseconds& delay)
+{
+  _LOG_DEBUG("Scheduling HELLO Interests in " << delay);
+
+  m_scheduler.scheduleEvent(delay,
+                            ndn::bind(&HelloProtocol::sendScheduledInterest, this));
 }
 
 void

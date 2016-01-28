@@ -29,7 +29,6 @@
 #include "adjacent.hpp"
 #include "logger.hpp"
 
-
 namespace nlsr {
 
 INIT_LOGGER("nlsr");
@@ -73,7 +72,6 @@ Nlsr::Nlsr(boost::asio::io_service& ioService, ndn::Scheduler& scheduler, ndn::F
                             m_certificateCache,
                             m_certStore)
   , m_faceMonitor(m_nlsrFace)
-  , m_firstHelloInterval(FIRST_HELLO_INTERVAL_DEFAULT)
   , m_nfdController(m_nlsrFace, m_keyChain)
 {
   m_faceMonitor.onNotification.connect(bind(&Nlsr::onFaceEventNotification, this, _1));
@@ -240,7 +238,7 @@ Nlsr::initialize()
   setLsaInterestFilter();
 
   // Set event intervals
-  setFirstHelloInterval(m_confParam.getFirstHelloInterval());
+  m_helloProtocol.setFirstHelloInterval(m_confParam.getFirstHelloInterval());
   m_nlsrLsdb.setAdjLsaBuildInterval(m_confParam.getAdjLsaBuildInterval());
   m_routingTable.setRoutingCalcInterval(m_confParam.getRoutingCalcInterval());
 
@@ -254,7 +252,7 @@ Nlsr::initialize()
   registerKeyPrefix();
   registerLocalhostPrefix();
 
-  m_helloProtocol.scheduleInterest(m_firstHelloInterval);
+  m_helloProtocol.start();
 
   // Need to set direct neighbors' costs to 0 for hyperbolic routing
   if (m_confParam.getHyperbolicState() == HYPERBOLIC_STATE_ON) {

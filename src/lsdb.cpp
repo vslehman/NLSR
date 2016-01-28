@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  The University of Memphis,
+ * Copyright (c) 2014-2016,  The University of Memphis,
  *                           Regents of the University of California,
  *                           Arizona Board of Regents.
  *
@@ -19,14 +19,16 @@
  * NLSR, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
+#include "lsdb.hpp"
+
+#include "conf-parameter.hpp"
+#include "logger.hpp"
+#include "nlsr.hpp"
+#include "utility/jitter.hpp"
+#include "utility/name-helper.hpp"
+
 #include <string>
 #include <utility>
-
-#include "lsdb.hpp"
-#include "nlsr.hpp"
-#include "conf-parameter.hpp"
-#include "utility/name-helper.hpp"
-#include "logger.hpp"
 
 namespace nlsr {
 
@@ -461,9 +463,11 @@ Lsdb::scheduleAdjLsaBuild()
   m_nlsr.incrementAdjBuildCount();
 
   if (m_nlsr.getIsBuildAdjLsaSheduled() == false) {
-    _LOG_DEBUG("Scheduling Adjacency LSA build in " << m_adjLsaBuildInterval);
+    ndn::time::milliseconds delay = util::jitter::getTimeWithJitter(m_adjLsaBuildInterval);
 
-    m_scheduler.scheduleEvent(m_adjLsaBuildInterval, ndn::bind(&Lsdb::buildAdjLsa, this));
+    _LOG_DEBUG("Scheduling Adjacency LSA build in " << delay);
+
+    m_scheduler.scheduleEvent(delay, ndn::bind(&Lsdb::buildAdjLsa, this));
     m_nlsr.setIsBuildAdjLsaSheduled(true);
   }
 }

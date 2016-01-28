@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /**
- * Copyright (c) 2014-2015,  The University of Memphis,
+ * Copyright (c) 2014-2016,  The University of Memphis,
  *                           Regents of the University of California,
  *                           Arizona Board of Regents.
  *
@@ -123,10 +123,10 @@ public:
   void
   setAdjLsaBuildInterval(uint32_t interval)
   {
-    m_adjLsaBuildInterval = ndn::time::seconds(interval);
+    m_adjLsaBuildInterval = interval;
   }
 
-  const ndn::time::seconds&
+  uint32_t
   getAdjLsaBuildInterval() const
   {
     return m_adjLsaBuildInterval;
@@ -289,7 +289,7 @@ private:
   static const ndn::time::seconds GRACE_PERIOD;
   static const steady_clock::TimePoint DEFAULT_LSA_RETRIEVAL_DEADLINE;
 
-  ndn::time::seconds m_adjLsaBuildInterval;
+  uint32_t m_adjLsaBuildInterval;
 };
 
 }//namespace nlsr

@@ -107,20 +107,25 @@ BOOST_AUTO_TEST_CASE(HyperbolicOff_LinkStateCost)
 
 BOOST_AUTO_TEST_CASE(SetEventIntervals)
 {
+  uint32_t adjLsaBuildInterval = 3;
+  uint32_t firstHelloInterval = 6;
+  uint32_t routingCalcInterval = 9;
+
   // Simulate loading configuration file
   ConfParameter& conf = nlsr.getConfParameter();
-  conf.setAdjLsaBuildInterval(3);
-  conf.setFirstHelloInterval(6);
-  conf.setRoutingCalcInterval(9);
+  conf.setAdjLsaBuildInterval(adjLsaBuildInterval);
+  conf.setFirstHelloInterval(firstHelloInterval);
+  conf.setRoutingCalcInterval(routingCalcInterval);
 
   nlsr.initialize();
 
+  const HelloProtocol& hello = nlsr.getHelloProtocol();
   const Lsdb& lsdb = nlsr.getLsdb();
   const RoutingTable& rt = nlsr.getRoutingTable();
 
-  BOOST_CHECK_EQUAL(lsdb.getAdjLsaBuildInterval(), ndn::time::seconds(3));
-  BOOST_CHECK_EQUAL(nlsr.getFirstHelloInterval(), 6);
-  BOOST_CHECK_EQUAL(rt.getRoutingCalcInterval(), ndn::time::seconds(9));
+  BOOST_CHECK_EQUAL(lsdb.getAdjLsaBuildInterval(), adjLsaBuildInterval);
+  BOOST_CHECK_EQUAL(hello.getFirstHelloInterval(), firstHelloInterval);
+  BOOST_CHECK_EQUAL(rt.getRoutingCalcInterval(), routingCalcInterval);
 }
 
 BOOST_AUTO_TEST_CASE(FaceDestroyEvent)
