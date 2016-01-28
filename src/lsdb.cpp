@@ -805,7 +805,11 @@ Lsdb::expressInterest(const ndn::Name& interestName, uint32_t timeoutCount, uint
   }
 
   interest.setInterestLifetime(m_nlsr.getConfParameter().getLsaInterestLifetime());
-  interest.setTag(make_shared<ndn::lp::NextHopFaceIdTag>(incomingFaceId));
+
+  static const uint64_t CONTENT_STORE_FACE_ID = 254;
+  if (incomingFaceId != CONTENT_STORE_FACE_ID) {
+    interest.setTag(make_shared<ndn::lp::NextHopFaceIdTag>(incomingFaceId));
+  }
 
   _LOG_DEBUG("Expressing Interest for LSA: " << interestName << " Seq number: " << seqNo);
   m_nlsr.getNlsrFace().expressInterest(interest,
